@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forecast Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
+        <h1 class="text-3xl font-bold mb-6 text-center">Forecast Results</h1>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Selected Variables:</h2>
+            <div class="bg-gray-50 p-4 rounded-md">
+                <p><span class="font-medium">Target Variable:</span> {{ target }}</p>
+                
+                {% if predictors %}
+                    <p class="mt-2">Predictor Variables:</p>
+                    <ul class="list-disc list-inside">
+                    {% for predictor in predictors %}
+                        <li>{{ predictor }}</li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mt-2">No predictor variables selected.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Forecast Graph:</h2>
+            <div class="bg-white p-4 rounded-md shadow-sm">
+                <img src="data:image/png;base64,{{ plot_url }}" alt="Forecast Graph" class="w-full">
+            </div>
+        </div>
+
+        {% if mape is not none %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Model Performance:</h2>
+            <div class="bg-gray-50 p-4 rounded-md">
+                <p>Mean Absolute Percentage Error (MAPE): {{ "%.2f"|format(mape * 100) }}%</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <a href="{{ url_for('select_variables') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-4">Back</a>
+            <a href="{{ url_for('index') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">Start Over</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Variables for Forecasting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-md w-96">
+        <h1 class="text-2xl font-bold mb-6 text-center">Select Variables for Forecasting</h1>
+        
+        <form action="{{ url_for('select_variables') }}" method="post">
+            <div class="mb-4">
+                <label for="target_variable" class="block mb-2">Select target variable:</label>
+                <select name="target_variable" id="target_variable" class="w-full p-2 border rounded" required>
+                    <option value="">--Please choose a target variable--</option>
+                    {% for variable in variables %}
+                        <option value="{{ variable }}">{{ variable }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block mb-2">Select predictor variables (optional):</label>
+                <div class="mb-2">
+                    <button type="button" id="select-all" class="bg-blue-500 text-white px-2 py-1 rounded mr-2">Select All</button>
+                    <button type="button" id="deselect-all" class="bg-gray-500 text-white px-2 py-1 rounded">Deselect All</button>
+                </div>
+                <div class="space-y-2 max-h-60 overflow-y-auto border p-2 rounded">
+                    {% for variable in variables %}
+                        <div class="flex items-center">
+                            <input type="checkbox" name="predictor_variables" value="{{ variable }}" id="{{ variable }}" class="mr-2">
+                            <label for="{{ variable }}">{{ variable }}</label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="train-test-split" class="block mb-2">Select train/test split:</label>
+                <input type="range" name="train_test_split" min="1" max="{{ data_length }}" value="{{ data_length }}" id="train-test-split" class="w-full">
+                <div class="text-center mt-2">
+                    <span id="split-value"></span> / {{ data_length }}
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Back</a>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Start Forecasting</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('select-all').addEventListener('click', function() {
+            document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = true);
+        });
+
+        document.getElementById('deselect-all').addEventListener('click', function() {
+            document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = false);
+        });
+
+        const slider = document.getElementById('train-test-split');
+        const output = document.getElementById('split-value');
+        output.innerHTML = slider.value;
+
+        slider.oninput = function() {
+            output.innerHTML = this.value;
+        }
+    </script>
+</body>
+</html>
