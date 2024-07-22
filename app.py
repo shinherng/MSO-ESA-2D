@@ -30,8 +30,10 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.model_selection import GridSearchCV
+from scikeras.wrappers import KerasRegressor
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 import matplotlib.pyplot as plt
 import io
 import base64
@@ -261,21 +263,50 @@ def forecast():
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
     
-    # Build and train the model
-    model = Sequential([
-        LSTM(50, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])),
-        Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mse')
-    model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0)
+   # Define model creation function
+    def create_model(optimizer='adam', units=50, dropout_rate=0.2):
+        model = Sequential()
+        model.add(LSTM(units, activation='relu', return_sequences=True, input_shape=(1, X_train.shape[2])))
+        model.add(Dropout(dropout_rate))
+        model.add(LSTM(units, activation='relu'))
+        model.add(Dense(1))
+        
+        model.compile(optimizer=optimizer, loss='mse')
+        return model
     
-# Make predictions on test data
+    # Set up parameter grid for grid search
+    param_grid = {
+        'model__units': [50, 100, 150],
+        'model__optimizer': ['adam', 'rmsprop'],
+        'model__dropout_rate': [0.2, 0.3],
+        'batch_size': [16, 32, 64],
+        'epochs': [50, 100]
+    }
+    
+    # Perform grid search
+    model = KerasRegressor(model=create_model, verbose=0)
+    grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=3, n_jobs=-1)
+    grid_result = grid.fit(X_train, y_train)
+    
+    # Extract the best hyperparameters
+    best_params = grid_result.best_params_
+    
+    # Train the final model with the best hyperparameters
+    best_model = create_model(
+        optimizer=best_params['model__optimizer'], 
+        units=best_params['model__units'], 
+        dropout_rate=best_params['model__dropout_rate']
+    )
+    best_model.fit(X_train, y_train, epochs=best_params['epochs'], batch_size=best_params['batch_size'], verbose=0)
+    
+    
+    # Make predictions on test data
     mape = None
     predictions = []
     if len(test_data) > 0:
         last_sequence = train_data[-1:].reshape(1, 1, -1)
         for _ in range(len(test_data)):
-            next_pred = model.predict(last_sequence)
+            next_pred = best_model.predict(last_sequence)
             predictions.append(next_pred[0, 0])
             # Update the last sequence for the next prediction
             last_sequence = np.roll(last_sequence, -1, axis=2)
@@ -285,12 +316,12 @@ def forecast():
         y_test = test_data[:, 0]  # Actual test values
         
         mape = calculate_mape(y_test, predictions, scaler, data)
-
+    
     # Make single-step forecasts for the next 10 time periods
     last_sequence = scaled_data[-1:].reshape(1, 1, -1)
     forecasts = []
     for _ in range(10):
-        next_pred = model.predict(last_sequence)
+        next_pred = best_model.predict(last_sequence)
         forecasts.append(next_pred[0, 0])
         # Update the last sequence for the next prediction
         last_sequence = np.roll(last_sequence, -1, axis=2)
@@ -306,7 +337,6 @@ def forecast():
         predictions = scaler.inverse_transform(np.column_stack((predictions, np.zeros((len(predictions), len(data.columns) - 1)))))[:, 0]
     forecast_values = scaler.inverse_transform(np.column_stack((forecasts, np.zeros((len(forecasts), len(data.columns) - 1)))))[:, 0]
 
-    
     # Plotting
     plt.figure(figsize=(12, 6))
     plt.plot(df.index[:train_test_split], df[target_variable][:train_test_split], label='Training Data')
@@ -325,6 +355,7 @@ def forecast():
     plot_url = base64.b64encode(buf.getvalue()).decode('utf8')
     
     return render_template('forecast.html', plot_url=plot_url, target=target_variable, predictors=predictor_variables, mape=mape, forecast_values=forecast_values.tolist())
+
 
 
 if __name__ == '__main__':
