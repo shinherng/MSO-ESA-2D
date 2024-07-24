@@ -2,6 +2,7 @@ import sys
 import subprocess
 import pkg_resources
 
+
 required_packages = {
     'flask': 'Flask',
     'pandas': 'pandas',
