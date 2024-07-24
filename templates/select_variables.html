@@ -21,7 +21,7 @@
                 </select>
             </div>
 
-            <div class="mb-4">
+            <!-- <div class="mb-4">
                 <label class="block mb-2">Select predictor variables (optional):</label>
                 <div class="mb-2">
                     <button type="button" id="select-all" class="bg-blue-500 text-white px-2 py-1 rounded mr-2">Select All</button>
@@ -35,7 +35,7 @@
                         </div>
                     {% endfor %}
                 </div>
-            </div>
+            </div> -->
 
             <div class="mb-4">
                 <label for="train-test-split" class="block mb-2">Select train/test split:</label>
@@ -53,13 +53,13 @@
     </div>
 
     <script>
-        document.getElementById('select-all').addEventListener('click', function() {
-            document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = true);
-        });
+        // document.getElementById('select-all').addEventListener('click', function() {
+        //     document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = true);
+        // });
 
-        document.getElementById('deselect-all').addEventListener('click', function() {
-            document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = false);
-        });
+        // document.getElementById('deselect-all').addEventListener('click', function() {
+        //     document.querySelectorAll('input[name="predictor_variables"]').forEach(el => el.checked = false);
+        // });
 
         const slider = document.getElementById('train-test-split');
         const output = document.getElementById('split-value');

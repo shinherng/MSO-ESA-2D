@@ -115,7 +115,7 @@ def calculate_mape(y_test, predictions, scaler, data):
         return None
 
 
-def export_predictions_to_csv(original_data, predictions, forecasts, scaler, target_variable, train_test_split, file_path='predictions_and_forecasts.csv'):
+def export_predictions_to_csv(original_data, forecasts, target_variable, train_test_split, file_path='forecasts.csv'):
     """
     Export the original values, predictions, and forecasts to a CSV file.
     
@@ -135,15 +135,15 @@ def export_predictions_to_csv(original_data, predictions, forecasts, scaler, tar
     original_values = original_data[target_variable].values.reshape(-1, 1)
     
     # Inverse transform the predictions and forecasts if they're not already
-    if predictions.ndim == 1:
-        predictions = predictions.reshape(-1, 1)
-    if forecasts.ndim == 1:
-        forecasts = forecasts.reshape(-1, 1)
+    # if predictions.ndim == 1:
+    #     predictions = predictions.reshape(-1, 1)
+    # if forecasts.ndim == 1:
+    #     forecasts = forecasts.reshape(-1, 1)
     
-    if predictions.shape[1] == 1:
-        predictions = scaler.inverse_transform(np.column_stack((predictions, np.zeros((len(predictions), scaler.scale_.shape[0] - 1)))))[:, 0]
-    if forecasts.shape[1] == 1:
-        forecasts = scaler.inverse_transform(np.column_stack((forecasts, np.zeros((len(forecasts), scaler.scale_.shape[0] - 1)))))[:, 0]
+    # if predictions.shape[1] == 1:
+    #     predictions = scaler.inverse_transform(np.column_stack((predictions, np.zeros((len(predictions), scaler.scale_.shape[0] - 1)))))[:, 0]
+    # if forecasts.shape[1] == 1:
+    #     forecasts = scaler.inverse_transform(np.column_stack((forecasts, np.zeros((len(forecasts), scaler.scale_.shape[0] - 1)))))[:, 0]
     
     # Create a DataFrame with the original values
     df_export = pd.DataFrame({
@@ -152,10 +152,10 @@ def export_predictions_to_csv(original_data, predictions, forecasts, scaler, tar
     })
     
     # Add the predictions to the DataFrame
-    df_predictions = pd.DataFrame({
-        'Value': predictions,
-        'Type': ['Predicted' for _ in range(len(predictions))]
-    })
+    # df_predictions = pd.DataFrame({
+    #     'Value': predictions,
+    #     'Type': ['Predicted' for _ in range(len(predictions))]
+    # })
     
     # Add the forecasts to the DataFrame
     df_forecasts = pd.DataFrame({
@@ -163,14 +163,13 @@ def export_predictions_to_csv(original_data, predictions, forecasts, scaler, tar
         'Type': ['Forecast' for _ in range(len(forecasts))]
     })
     
-    df_export = pd.concat([df_export, df_predictions, df_forecasts], ignore_index=True)
+    df_export = pd.concat([df_export, df_forecasts], ignore_index=True)
     
     # Reorder columns
     df_export = df_export[['Type', 'Value']]
     
     # Export to CSV
     df_export.to_csv(file_path, index=False)
-    print(f"Predictions and forecasts exported to {file_path}")
 
 
 
@@ -235,7 +234,7 @@ def select_variables():
 def forecast():
     file_path = session.get('file_path')
     target_variable = session.get('target_variable')
-    predictor_variables = session.get('predictor_variables')
+    # predictor_variables = session.get('predictor_variables')
     train_test_split = session.get('train_test_split')
     
     if not all([file_path, target_variable, train_test_split]):
@@ -245,75 +244,85 @@ def forecast():
     df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
     df = df.applymap(convert_to_float)
     
-    data = df[[target_variable] + predictor_variables] if predictor_variables else df[[target_variable]]
+    data = df[[target_variable]]
     
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(data)
+    #scaler = MinMaxScaler(feature_range=(0, 1))
+    #scaled_data = scaler.fit_transform(data)
     
-    train_data = scaled_data[:train_test_split]
-    test_data = scaled_data[train_test_split:]
+    train = data[:train_test_split]
+    test = data[train_test_split:]
     
+    prophet_mape, prophet_pred = prophet(train, test)
+    lstm_mape, lstm_pred = lstm(train, test)
+
+    if prophet_mape > lstm_mape:
+        mape = lstm_mape
+        forecasts = lstm_pred
+    else:
+        mape = prophet_mape
+        forecasts = prophet_pred
+
     # Prepare training data
-    X_train, y_train = [], []
-    for i in range(len(train_data) - 1):
-        X_train.append(train_data[i, :])
-        y_train.append(train_data[i + 1, 0])
-    X_train, y_train = np.array(X_train), np.array(y_train)
-    X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+    # X_train, y_train = [], []
+    # for i in range(len(train_data) - 1):
+    #     X_train.append(train_data[i, :])
+    #     y_train.append(train_data[i + 1, 0])
+    # X_train, y_train = np.array(X_train), np.array(y_train)
+    # X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
     
     # Build and train the model
-    model = Sequential([
-        LSTM(50, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])),
-        Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mse')
-    model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0)
+    # model = Sequential([
+    #     LSTM(50, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])),
+    #     Dense(1)
+    # ])
+    # model.compile(optimizer='adam', loss='mse')
+    # model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0)
     
-# Make predictions on test data
-    mape = None
-    predictions = []
-    if len(test_data) > 0:
-        last_sequence = train_data[-1:].reshape(1, 1, -1)
-        for _ in range(len(test_data)):
-            next_pred = model.predict(last_sequence)
-            predictions.append(next_pred[0, 0])
-            # Update the last sequence for the next prediction
-            last_sequence = np.roll(last_sequence, -1, axis=2)
-            last_sequence[0, 0, -1] = next_pred[0, 0]
+    # Make predictions on test data
+    # mape = None
+    # predictions = []
+    # if len(test_data) > 0:
+    #     last_sequence = train_data[-1:].reshape(1, 1, -1)
+    #     for _ in range(len(test_data)):
+    #         next_pred = model.predict(last_sequence)
+    #         predictions.append(next_pred[0, 0])
+    #         # Update the last sequence for the next prediction
+    #         last_sequence = np.roll(last_sequence, -1, axis=2)
+    #         last_sequence[0, 0, -1] = next_pred[0, 0]
         
-        predictions = np.array(predictions)
-        y_test = test_data[:, 0]  # Actual test values
+    #     predictions = np.array(predictions)
+    #     y_test = test_data[:, 0]  # Actual test values
         
-        mape = calculate_mape(y_test, predictions, scaler, data)
+    #     mape = calculate_mape(y_test, predictions, scaler, data)
 
-    # Make single-step forecasts for the next 10 time periods
-    last_sequence = scaled_data[-1:].reshape(1, 1, -1)
-    forecasts = []
-    for _ in range(10):
-        next_pred = model.predict(last_sequence)
-        forecasts.append(next_pred[0, 0])
-        # Update the last sequence for the next prediction
-        last_sequence = np.roll(last_sequence, -1, axis=2)
-        last_sequence[0, 0, -1] = next_pred[0, 0]
+    # # Make single-step forecasts for the next 10 time periods
+    # last_sequence = scaled_data[-1:].reshape(1, 1, -1)
+    # forecasts = []
+    # for _ in range(10):
+    #     next_pred = model.predict(last_sequence)
+    #     forecasts.append(next_pred[0, 0])
+    #     # Update the last sequence for the next prediction
+    #     last_sequence = np.roll(last_sequence, -1, axis=2)
+    #     last_sequence[0, 0, -1] = next_pred[0, 0]
     
-    forecasts = np.array(forecasts)
+    # forecasts = np.array(forecasts)
 
     # Export predictions and forecasts to CSV
-    export_predictions_to_csv(df, predictions, forecasts, scaler, target_variable, train_test_split)
+    export_predictions_to_csv(df, forecasts, target_variable, train_test_split)
 
     # Inverse transform predictions and forecasts for plotting
-    if len(predictions) > 0:
-        predictions = scaler.inverse_transform(np.column_stack((predictions, np.zeros((len(predictions), len(data.columns) - 1)))))[:, 0]
-    forecast_values = scaler.inverse_transform(np.column_stack((forecasts, np.zeros((len(forecasts), len(data.columns) - 1)))))[:, 0]
+    # if len(predictions) > 0:
+    #     predictions = scaler.inverse_transform(np.column_stack((predictions, np.zeros((len(predictions), len(data.columns) - 1)))))[:, 0]
+    # forecast_values = scaler.inverse_transform(np.column_stack((forecasts, np.zeros((len(forecasts), len(data.columns) - 1)))))[:, 0]
 
     
     # Plotting
     plt.figure(figsize=(12, 6))
     plt.plot(df.index[:train_test_split], df[target_variable][:train_test_split], label='Training Data')
-    if len(test_data) > 0:
+    if len(test) > 0:
         plt.plot(df.index[train_test_split:], df[target_variable][train_test_split:], label='Test Data')
-        plt.plot(df.index[train_test_split:], predictions, label='Predictions', color='green')
-    plt.plot(range(len(df), len(df) + 10), forecast_values, label='Forecast', color='red')
+        plt.plot(df.index[train_test_split:], forecasts, label='Forecasts', color='red')
+    # plt.plot(range(len(df), len(df) + 10), forecasts, label='Forecast', color='red')
     plt.title(f'LSTM Forecast for {target_variable}')
     plt.xlabel('Time Step')
     plt.ylabel(target_variable)
@@ -324,7 +333,7 @@ def forecast():
     buf.seek(0)
     plot_url = base64.b64encode(buf.getvalue()).decode('utf8')
     
-    return render_template('forecast.html', plot_url=plot_url, target=target_variable, predictors=predictor_variables, mape=mape, forecast_values=forecast_values.tolist())
+    return render_template('forecast.html', plot_url=plot_url, target=target_variable, mape=mape, forecast_values=forecasts)
 
 
 if __name__ == '__main__':
