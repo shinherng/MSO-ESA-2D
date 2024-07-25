@@ -112,7 +112,7 @@ def plot_predictions(y_true, y_pred, title):
     plt.legend()
     plt.show()
 
-def lstm(train_data, test_data):
+def aaron_lstm(train_data, test_data):
     # train_data, test_data, length_train, length_test = load_and_prepare_data("C:\\Users\\Aaron\\Downloads\\HistoricalPrices.csv")
 
     x_train, y_train, x_test, y_test, scaler = scale_data(train_data, test_data)
@@ -134,7 +134,7 @@ def lstm(train_data, test_data):
 
     return y_pred_lstm, lstm_metrics
 
-def rnn(train_data, test_data):
+def aaron_rnn(train_data, test_data):
     x_train, y_train, x_test, y_test, scaler = scale_data(train_data, test_data)
     rnn_model = build_rnn_model((x_train.shape[1], 1))
 

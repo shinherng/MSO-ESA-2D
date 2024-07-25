@@ -8,7 +8,8 @@ required_packages = {
     'numpy': 'numpy',
     'scikit-learn': 'sklearn',
     'tensorflow': 'tensorflow',
-    'matplotlib': 'matplotlib'
+    'matplotlib': 'matplotlib',
+    'numpy': 'numpy'
 }
 
 def install_missing_packages():
@@ -36,6 +37,8 @@ import matplotlib.pyplot as plt
 import io
 import base64
 import logging
+import aaron_lstm
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -252,8 +255,9 @@ def forecast():
     train = data[:train_test_split]
     test = data[train_test_split:]
     
+    lstm_pred, lstm_mape = aaron_lstm.aaron_lstm(train, test)
+    rnn_pred, rnn_mape = aaron_lstm.aaron_rnn(train, test)
     prophet_mape, prophet_pred = prophet(train, test)
-    lstm_mape, lstm_pred = lstm(train, test)
 
     if prophet_mape > lstm_mape:
         mape = lstm_mape
