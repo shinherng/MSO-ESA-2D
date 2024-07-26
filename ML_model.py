@@ -11,20 +11,20 @@ from keras.layers import Dense, SimpleRNN, Dropout, LSTM
 warnings.filterwarnings("ignore")
 
 
-def load_and_prepare_data(file_path, split_ratio=0.7):
-    data = pd.read_csv(file_path)
-    data = data.iloc[::-1]
-    length_data = len(data)
-    length_train = round(length_data * split_ratio)
-    length_test = length_data - length_train
+# def load_and_prepare_data(file_path, split_ratio=0.7):
+#     data = pd.read_csv(file_path)
+#     data = data.iloc[::-1]
+#     length_data = len(data)
+#     length_train = round(length_data * split_ratio)
+#     length_test = length_data - length_train
 
-    train_data = data[:length_train].iloc[:, :2]
-    train_data['Date'] = pd.to_datetime(train_data['Date'])
+#     train_data = data[:length_train].iloc[:, :2]
+#     train_data['Date'] = pd.to_datetime(train_data['Date'])
 
-    test_data = data[length_train:].iloc[:,:2]
-    test_data['Date'] = pd.to_datetime(test_data['Date'])
+#     test_data = data[length_train:].iloc[:,:2]
+#     test_data['Date'] = pd.to_datetime(test_data['Date'])
     
-    return train_data, test_data, length_train, length_test
+#     return train_data, test_data, length_train, length_test
 
 def scale_data(train_data, test_data):
     train_data.columns = train_data.columns.str.strip()
@@ -85,32 +85,32 @@ def build_lstm_model(input_shape):
     model_lstm.compile(loss="mean_absolute_percentage_error", optimizer="adam", metrics=["accuracy"])
     return model_lstm
 
-def plot_training_history(history, title):
-    plt.figure(figsize=(10, 5))
-    plt.plot(history.history["loss"], label="Loss")
-    plt.plot(history.history["accuracy"], label="Accuracy")
-    plt.xlabel("Epochs")
-    plt.ylabel("Values")
-    plt.title(f"{title} - Loss and Accuracy vs Epoch")
-    plt.legend()
-    plt.show()
+# def plot_training_history(history, title):
+#     plt.figure(figsize=(10, 5))
+#     plt.plot(history.history["loss"], label="Loss")
+#     plt.plot(history.history["accuracy"], label="Accuracy")
+#     plt.xlabel("Epochs")
+#     plt.ylabel("Values")
+#     plt.title(f"{title} - Loss and Accuracy vs Epoch")
+#     plt.legend()
+#     plt.show()
 
 def calculate_metrics(y_true, y_pred):
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mse = mean_squared_error(y_true, y_pred)
-    mae = mean_absolute_error(y_true, y_pred)
+    # rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    # mse = mean_squared_error(y_true, y_pred)
+    # mae = mean_absolute_error(y_true, y_pred)
     mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
     return mape
 
-def plot_predictions(y_true, y_pred, title):
-    plt.figure(figsize=(30, 10))
-    plt.plot(y_pred, label="Predicted", c="orange")
-    plt.plot(y_true, label="True", c="g")
-    plt.xlabel("Days")
-    plt.ylabel("Open Price")
-    plt.title(title)
-    plt.legend()
-    plt.show()
+# def plot_predictions(y_true, y_pred, title):
+#     plt.figure(figsize=(30, 10))
+#     plt.plot(y_pred, label="Predicted", c="orange")
+#     plt.plot(y_true, label="True", c="g")
+#     plt.xlabel("Days")
+#     plt.ylabel("Open Price")
+#     plt.title(title)
+#     plt.legend()
+#     plt.show()
 
 def aaron_lstm(train_data, test_data):
     # train_data, test_data, length_train, length_test = load_and_prepare_data("C:\\Users\\Aaron\\Downloads\\HistoricalPrices.csv")
@@ -126,11 +126,11 @@ def aaron_lstm(train_data, test_data):
 
     y_pred_lstm = lstm_model.predict(x_test)
     y_pred_lstm = scaler.inverse_transform(y_pred_lstm)
-    plot_predictions(y_test_scaled, y_pred_lstm, "LSTM Model Predictions")
+    #plot_predictions(y_test_scaled, y_pred_lstm, "LSTM Model Predictions")
 
     lstm_metrics = calculate_metrics(y_test_scaled, y_pred_lstm)
 
-    print("LSTM Model Metrics (MAPE):", lstm_metrics)
+    #print("LSTM Model Metrics (MAPE):", lstm_metrics)
 
     return y_pred_lstm, lstm_metrics
 
@@ -138,21 +138,18 @@ def aaron_rnn(train_data, test_data):
     x_train, y_train, x_test, y_test, scaler = scale_data(train_data, test_data)
     rnn_model = build_rnn_model((x_train.shape[1], 1))
 
-    rnn_history = rnn_model.fit(x_train, y_train, epochs=50, batch_size=32)
-    plot_training_history(rnn_history, "Simple RNN Model")
+    rnn_model.fit(x_train, y_train, epochs=50, batch_size=32)
+    #plot_training_history(rnn_history, "Simple RNN Model")
 
     y_pred_rnn = rnn_model.predict(x_test)
     y_pred_rnn = scaler.inverse_transform(y_pred_rnn)
     y_test_scaled = scaler.inverse_transform(y_test)
-    plot_predictions(y_test_scaled, y_pred_rnn, "Simple RNN Model Predictions")
+    #plot_predictions(y_test_scaled, y_pred_rnn, "Simple RNN Model Predictions")
 
     rnn_metrics = calculate_metrics(y_test_scaled, y_pred_rnn)
-    print("RNN Model Metrics (MAPE):", rnn_metrics)
+    #print("RNN Model Metrics (MAPE):", rnn_metrics)
 
     return y_pred_rnn, rnn_metrics
-
-if __name__ == "__main__":
-    main()
 
 
 def ys_prophet(train_data, test_data, periods):
@@ -170,9 +167,9 @@ def ys_prophet(train_data, test_data, periods):
     train_test_split = len(train_data)
     predictions = forecast['yhat'].iloc[train_test_split:train_test_split + len(test_data)].values
 
-    plot_predictions(test_data.values, predictions, "Prophet Model Predictions")
+    #plot_predictions(test_data.values, predictions, "Prophet Model Predictions")
     prophet_mape = calculate_metrics(test_data.values, predictions)
-    print("Prophet Model Metrics (MAPE):", prophet_mape)
+    #print("Prophet Model Metrics (MAPE):", prophet_mape)
 
     return predictions, prophet_mape
 
