@@ -1,0 +1,53 @@
+<!-- templates/select_column.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Column - Time Series Forecasting</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <style>
+        .page-content { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .mdl-button { margin-top: 10px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+            <div class="mdl-layout__header-row">
+                <span class="mdl-layout-title">Time Series Forecasting</span>
+            </div>
+        </header>
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <h4>Select Column and Train/Test Split</h4>
+                <form method="post">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <select class="mdl-textfield__input" id="column" name="column">
+                            {% for column in columns %}
+                            <option value="{{ column }}">{{ column }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="mdl-textfield__label" for="column">Select column to forecast</label>
+                    </div>
+                    <br>
+                    <label for="train_test_split">Train/Test Split: <span id="split_value">{{ total_rows }}</span></label>
+                    <input class="mdl-slider mdl-js-slider" type="range" id="train_test_split" name="train_test_split" min="50" max="{{ total_rows }}" value="{{ total_rows }}">
+                    <br><br>
+                    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit">Proceed</button>
+                    <a href="{{ url_for('upload_file') }}" class="mdl-button mdl-js-button mdl-button--raised">Back</a>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script>
+        var slider = document.getElementById("train_test_split");
+        var output = document.getElementById("split_value");
+        slider.oninput = function() {
+            output.innerHTML = this.value;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!-- templates/upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload File - Time Series Forecasting</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <style>
+        .page-content { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .mdl-button { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+            <div class="mdl-layout__header-row">
+                <span class="mdl-layout-title">Time Series Forecasting</span>
+            </div>
+        </header>
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <h4>Upload File</h4>
+                <form method="post">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input class="mdl-textfield__input" type="text" id="file_path" name="file_path">
+                        <label class="mdl-textfield__label" for="file_path">Enter file path</label>
+                    </div>
+                    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" id="proceed" disabled>
+                        Proceed
+                    </button>
+                </form>
+                <p>The file should only be in CSV or Excel format and contain at least a column of numbers to forecast. There should be at least 50 numerical values.</p>
+                {% if error %}
+                <p class="mdl-color-text--red">{{ error }}</p>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+    <script>
+        document.querySelector('input[name="file_path"]').addEventListener('input', function() {
+            document.getElementById('proceed').disabled = this.value.trim() === '';
+        });
+    </script>
+</body>
+</html>

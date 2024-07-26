@@ -1,53 +1,44 @@
+<!-- templates/forecast.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forecast Results</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Forecast Results - Time Series Forecasting</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .page-content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        #plot { width: 100%; height: 500px; }
+        .mdl-button { margin-top: 10px; margin-right: 10px; }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-8">
-    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
-        <h1 class="text-3xl font-bold mb-6 text-center">Forecast Results</h1>
-
-        <div class="mb-8">
-            <!-- <h2 class="text-2xl font-semibold mb-4">Selected Variables:</h2> -->
-            <div class="bg-gray-50 p-4 rounded-md">
-                <p><span class="font-medium">Target Variable:</span> {{ target }}</p>
-                
-                <!-- {% if predictors %}
-                    <p class="mt-2">Predictor Variables:</p>
-                    <ul class="list-disc list-inside">
-                    {% for predictor in predictors %}
-                        <li>{{ predictor }}</li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="mt-2">No predictor variables selected.</p>
-                {% endif %} -->
+<body>
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+            <div class="mdl-layout__header-row">
+                <span class="mdl-layout-title">Time Series Forecasting</span>
             </div>
-        </div>
-
-        <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Forecast Graph:</h2>
-            <div class="bg-white p-4 rounded-md shadow-sm">
-                <img src="data:image/png;base64,{{ plot_url }}" alt="Forecast Graph" class="w-full">
+        </header>
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <h4>Forecast Results</h4>
+                <div id="plot"></div>
+                <p><strong>Best Model:</strong> {{ model }}</p>
+                <p><strong>MAPE:</strong> {{ mape|round(2) }}%</p>
+                <a href="{{ url_for('download_results', results_id=results_id) }}" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                    Download Results
+                </a>
+                <a href="{{ url_for('upload_file') }}" class="mdl-button mdl-js-button mdl-button--raised">Restart</a>
+                <a href="{{ url_for('select_column') }}" class="mdl-button mdl-js-button mdl-button--raised">Back</a>
             </div>
-        </div>
-
-        {% if mape is not none %}
-        <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Model Performance:</h2>
-            <div class="bg-gray-50 p-4 rounded-md">
-                <p>Mean Absolute Percentage Error (MAPE): {{ "%.2f"|format(mape * 100) }}%</p>
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="text-center">
-            <a href="{{ url_for('select_variables') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-4">Back</a>
-            <a href="{{ url_for('index') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">Start Over</a>
-        </div>
+        </main>
     </div>
+    <script>
+        var graphs = {{ graph_json | safe }};
+        Plotly.newPlot('plot', graphs.data, graphs.layout);
+    </script>
 </body>
 </html>
