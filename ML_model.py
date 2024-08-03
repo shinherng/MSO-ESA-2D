@@ -83,13 +83,29 @@ def aaron_lstm(train_data, test_data):
     lstm_model = build_lstm_model((x_train.shape[1], 1))
     lstm_model.fit(x_train, y_train, epochs=10, batch_size=10, verbose=0)
     
+    # Predict for test data
     y_pred_lstm = lstm_model.predict(x_test)
-    y_pred_lstm = scaler.inverse_transform(y_pred_lstm)
+    
+    # Predict future 10 time steps
+    last_sequence = x_test[-1:]
+    future_predictions = []
+    for _ in range(10):
+        next_pred = lstm_model.predict(last_sequence)
+        future_predictions.append(next_pred[0, 0])
+        last_sequence = np.roll(last_sequence, -1, axis=1)
+        last_sequence[0, -1, 0] = next_pred[0, 0]
+    
+    # Combine test predictions and future predictions
+    all_predictions = np.concatenate([y_pred_lstm, np.array(future_predictions).reshape(-1, 1)])
+    
+    # Inverse transform all predictions
+    all_predictions = scaler.inverse_transform(all_predictions)
+    
+    # Calculate metrics only for the test data
     y_test_scaled = scaler.inverse_transform(y_test)
+    lstm_metrics = calculate_metrics(y_test_scaled, all_predictions[:len(y_test_scaled)])
     
-    lstm_metrics = calculate_metrics(y_test_scaled, y_pred_lstm)
-    
-    return y_pred_lstm, lstm_metrics
+    return all_predictions, lstm_metrics
 
 def aaron_rnn(train_data, test_data):
     x_train, y_train, x_test, y_test, scaler, time_step = scale_data(train_data, test_data)
@@ -100,13 +116,29 @@ def aaron_rnn(train_data, test_data):
     rnn_model = build_rnn_model((x_train.shape[1], 1), 50)
     rnn_model.fit(x_train, y_train, epochs=50, batch_size=32, verbose=0)
     
+    # Predict for test data
     y_pred_rnn = rnn_model.predict(x_test)
-    y_pred_rnn = scaler.inverse_transform(y_pred_rnn)
+    
+    # Predict future 10 time steps
+    last_sequence = x_test[-1:]
+    future_predictions = []
+    for _ in range(10):
+        next_pred = rnn_model.predict(last_sequence)
+        future_predictions.append(next_pred[0, 0])
+        last_sequence = np.roll(last_sequence, -1, axis=1)
+        last_sequence[0, -1, 0] = next_pred[0, 0]
+    
+    # Combine test predictions and future predictions
+    all_predictions = np.concatenate([y_pred_rnn, np.array(future_predictions).reshape(-1, 1)])
+    
+    # Inverse transform all predictions
+    all_predictions = scaler.inverse_transform(all_predictions)
+    
+    # Calculate metrics only for the test data
     y_test_scaled = scaler.inverse_transform(y_test)
+    rnn_metrics = calculate_metrics(y_test_scaled, all_predictions[:len(y_test_scaled)])
     
-    rnn_metrics = calculate_metrics(y_test_scaled, y_pred_rnn)
-    
-    return y_pred_rnn, rnn_metrics
+    return all_predictions, rnn_metrics
 
 def ys_prophet(train_data, test_data, periods):
     # Prepare data for Prophet
@@ -118,13 +150,15 @@ def ys_prophet(train_data, test_data, periods):
     model = Prophet()
     model.fit(train_data_df)
     
-    future = model.make_future_dataframe(periods=len(test_data))
+    # Forecast for test data and future 10 time steps
+    future = model.make_future_dataframe(periods=len(test_data) + 10)
     forecast = model.predict(future)
     
-    predictions = forecast['yhat'].iloc[-len(test_data):].values
+    # Extract predictions for test data and future 10 time steps
+    predictions = forecast['yhat'].iloc[-len(test_data)-10:].values
     
     if len(test_data) > 0:
-        prophet_mape = calculate_metrics(test_data, predictions)
+        prophet_mape = calculate_metrics(test_data, predictions[:len(test_data)])
     else:
         prophet_mape = np.inf  # Return infinite MAPE if there's no test data
     

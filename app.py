@@ -59,6 +59,7 @@ def select_column():
     
     return render_template('select_column.html', columns=numeric_columns, total_rows=len(df))
 
+    
 @app.route('/forecast')
 def forecast():
     file_path = session.get('file_path')
@@ -71,8 +72,8 @@ def forecast():
     df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
     data = df[selected_column].values
     
-    train_data = pd.DataFrame({'Date': df.index[:train_test_split], 'Open': data[:train_test_split]})
-    test_data = pd.DataFrame({'Date': df.index[train_test_split:], 'Open': data[train_test_split:]})
+    train_data = pd.DataFrame({'index': range(train_test_split), 'Open': data[:train_test_split]})
+    test_data = pd.DataFrame({'index': range(train_test_split, len(df)), 'Open': data[train_test_split:]})
     
     lstm_pred, lstm_mape = aaron_lstm(train_data, test_data)
     rnn_pred, rnn_mape = aaron_rnn(train_data, test_data)
@@ -101,16 +102,26 @@ def forecast():
     }
     
     # Prepare data for plotting
-    trace_train = go.Scatter(x=df.index[:train_test_split], y=data[:train_test_split], mode='lines', name='Train')
-    trace_test = go.Scatter(x=df.index[train_test_split:], y=data[train_test_split:], mode='lines', name='Test')
-    trace_pred = go.Scatter(x=df.index[train_test_split:], y=predictions.flatten(), mode='lines', name='Predictions')
+    trace_train = go.Scatter(x=list(range(train_test_split)), y=data[:train_test_split], mode='lines', name='Train')
+    trace_test = go.Scatter(x=list(range(train_test_split, len(df))), y=data[train_test_split:], mode='lines', name='Test')
     
-    layout = go.Layout(title='Time Series Forecast', xaxis=dict(title='Date'), yaxis=dict(title='Value'))
-    fig = go.Figure(data=[trace_train, trace_test, trace_pred], layout=layout)
+    # Create x-axis values for predictions (including future 10 steps)
+    pred_x = list(range(train_test_split, len(df) + 10))
+    
+    # Separate the predictions for test data and future steps
+    test_predictions = predictions[:len(test_data)]
+    future_predictions = predictions[len(test_data):]
+    
+    trace_pred = go.Scatter(x=pred_x[:len(test_data)], y=test_predictions.flatten(), mode='lines', name='Predictions', line=dict(color='red'))
+    trace_future = go.Scatter(x=pred_x[len(test_data):], y=future_predictions.flatten(), mode='lines', name='Future 10 Steps', line=dict(color='green'))
+    
+    layout = go.Layout(title='Time Series Forecast', xaxis=dict(title='Index'), yaxis=dict(title='Value'))
+    fig = go.Figure(data=[trace_train, trace_test, trace_pred, trace_future], layout=layout)
     
     graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     
     return render_template('forecast.html', graph_json=graph_json, mape=best_mape, model=best_model_name, results_id=results_id)
+
 
 @app.route('/download_results/<results_id>')
 def download_results(results_id):
@@ -127,14 +138,11 @@ def download_results(results_id):
         
         logging.info(f"Original data length: {len(original_data)}, Predictions length: {len(predictions)}")
         
-        # Create a DataFrame with actual data
+        # Create a DataFrame with actual data and predictions
         df = pd.DataFrame({
-            'Actual': original_data,
-            'Forecast': [np.nan] * len(original_data)  # Initialize forecast column with NaN
+            'Actual': original_data + [np.nan] * 10,
+            'Forecast': [np.nan] * train_test_split + predictions
         })
-        
-        # Add predictions to the forecast column starting from the train_test_split index
-        df.loc[train_test_split:, 'Forecast'] = predictions[:len(df) - train_test_split]
         
         filename = f"{results['best_model']}_forecasts_{results['selected_column']}.csv"
         file_path = os.path.join(os.path.dirname(__file__), filename)

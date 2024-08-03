@@ -28,6 +28,14 @@
                 <div id="plot"></div>
                 <p><strong>Best Model:</strong> {{ model }}</p>
                 <p><strong>MAPE:</strong> {{ mape|round(2) }}%</p>
+                <p><strong>Note:</strong> The x-axis represents the index of data points. The forecast includes predictions for 10 future steps beyond the available data, shown in green.</p>
+                <p><strong>Color Legend:</strong></p>
+                <ul>
+                    <li>Blue: Training Data</li>
+                    <li>Orange: Test Data</li>
+                    <li>Red: Predictions for Test Period</li>
+                    <li>Green: Future 10 Steps Predictions</li>
+                </ul>
                 <a href="{{ url_for('download_results', results_id=results_id) }}" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
                     Download Results
                 </a>
